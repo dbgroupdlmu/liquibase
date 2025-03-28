@@ -32,7 +32,7 @@ public class ClobType extends LiquibaseDataType {
         if (val.startsWith("'")) {
             return val;
         } else {
-            if ((database instanceof MSSQLDatabase) && !StringUtil.isAscii(val)) {
+            if ((database instanceof MSSQLDatabase || database instanceof KingbaseDatabase) && !StringUtil.isAscii(val)) {
                 return "N'" + database.escapeStringForDatabase(val) + "'";
             }
 
@@ -43,7 +43,7 @@ public class ClobType extends LiquibaseDataType {
     @Override
     public DatabaseDataType toDatabaseDataType(Database database) {
         String originalDefinition = StringUtil.trimToEmpty(getRawDefinition());
-        if (database instanceof MSSQLDatabase) {
+        if (database instanceof MSSQLDatabase || database instanceof KingbaseDatabase) {
             if (originalDefinition.toLowerCase(Locale.US).startsWith("text") ||
                 originalDefinition.toLowerCase(Locale.US).startsWith("[text]") ||
                 originalDefinition.toLowerCase(Locale.US).startsWith("ntext") ||

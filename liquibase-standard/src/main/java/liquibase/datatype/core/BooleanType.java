@@ -65,7 +65,7 @@ public class BooleanType extends LiquibaseDataType {
 				return new DatabaseDataType("SMALLINT");
         } else if (database instanceof HsqlDatabase) {
             return new DatabaseDataType("BOOLEAN");
-        } else if (database instanceof PostgresDatabase) {
+        } else if (database instanceof PostgresDatabase || database instanceof KingbaseDatabase) {
             if (originalDefinition.toLowerCase(Locale.US).startsWith("bit")) {
                 return new DatabaseDataType("BIT", getParameters());
             }
@@ -159,6 +159,9 @@ public class BooleanType extends LiquibaseDataType {
         if (isNumericBoolean(database)) {
             return "0";
         }
+        if (database instanceof KingbaseDatabase) {
+            return "'0'";
+        }
         if (database instanceof InformixDatabase) {
             return "'f'";
         }
@@ -171,6 +174,9 @@ public class BooleanType extends LiquibaseDataType {
     public String getTrueBooleanValue(Database database) {
         if (isNumericBoolean(database)) {
             return "1";
+        }
+        if (database instanceof KingbaseDatabase) {
+            return "'1'";
         }
         if (database instanceof InformixDatabase) {
             return "'t'";
