@@ -299,6 +299,10 @@ public class ChangedColumnChangeGenerator extends AbstractChangeGenerator implem
         if (!(comparisonDatabase instanceof PostgresDatabase)) {
             return true;
         }
+        //
+        if (column.getAutoIncrementInformation() != null && difference.getReferenceValue() instanceof DatabaseFunction) {
+            return false;
+        }
         return column.getAutoIncrementInformation() == null || !(difference.getReferenceValue() instanceof DatabaseFunction);
     }
 }

@@ -99,6 +99,16 @@ public class BlobType extends LiquibaseDataType {
             return new DatabaseDataType("BYTEA");
         }
 
+        if (database instanceof KingbaseDatabase) {
+            if (blob) {
+                return new DatabaseDataType("BLOB");
+            } else if (originalDefinition.toLowerCase(Locale.US).startsWith("oid")) {
+                return new DatabaseDataType("OID");
+            } else {
+                return new DatabaseDataType("BYTEA");
+            }
+        }
+
         if (database instanceof SybaseASADatabase) {
             return new DatabaseDataType("LONG BINARY");
         }

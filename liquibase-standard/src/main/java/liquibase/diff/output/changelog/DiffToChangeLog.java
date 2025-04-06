@@ -751,76 +751,79 @@ public class DiffToChangeLog {
     }
 
     private String queryForDependenciesPostgreSql(List<String> schemas) {
-        //SQL adapted from https://wiki.postgresql.org/wiki/Pg_depend_display
-        //We filter out PK and FK in this query so that they are not added to the dependency graph
-        //they get added later in the flow, after the table is guaranteed to have been created
         return "WITH RECURSIVE preference AS (\n" +
-                "    SELECT 10 AS max_depth  -- The deeper the recursion goes, the slower it performs.\n" +
-                "         , 16384 AS min_oid -- user objects only\n" +
-                "         , '^(londiste|pgq|pg_toast)'::text AS schema_exclusion\n" +
-                "         , '^pg_(conversion|language|ts_(dict|template))'::text AS class_exclusion\n" +
-                "         , '{\"SCHEMA\":\"00\", \"TABLE\":\"01\", \"CONSTRAINT\":\"02\", \"DEFAULT\":\"03\",\n" +
-                "      \"INDEX\":\"05\", \"SEQUENCE\":\"06\", \"TRIGGER\":\"07\", \"FUNCTION\":\"08\",\n" +
-                "      \"VIEW\":\"10\", \"MVIEW\":\"11\", \"FOREIGN\":\"12\"}'::json AS type_ranks),\n" +
-                "               dependency_pair AS (\n" +
-                "                   WITH relation_object AS ( SELECT oid, oid::regclass::text AS object_name  FROM pg_class )\n" +
-                "                   SELECT DISTINCT " +
-                "                         substring(pg_identify_object(classid, objid, 0)::text, E'(\\\\w+?)\\\\.') as referenced_schema_name, " +
-                "                         CASE classid\n" +
-                "                              WHEN 'pg_constraint'::regclass THEN (SELECT CONTYPE::text FROM pg_constraint WHERE oid = objid)\n" +
-                "                              ELSE objid::text\n" +
-                "                              END AS CONTYPE,\n" +
-                "                         CASE classid\n" +
-                "                              WHEN 'pg_attrdef'::regclass THEN (SELECT attname FROM pg_attrdef d JOIN pg_attribute c ON (c.attrelid,c.attnum)=(d.adrelid,d.adnum) WHERE d.oid = objid)\n" +
-                "                              WHEN 'pg_cast'::regclass THEN (SELECT concat(castsource::regtype::text, ' AS ', casttarget::regtype::text,' WITH ', castfunc::regprocedure::text) FROM pg_cast WHERE oid = objid)\n" +
-                "                              WHEN 'pg_class'::regclass THEN rel.object_name\n" +
-                "                              WHEN 'pg_constraint'::regclass THEN (SELECT conname FROM pg_constraint WHERE oid = objid)\n" +
-                "                              WHEN 'pg_extension'::regclass THEN (SELECT extname FROM pg_extension WHERE oid = objid)\n" +
-                "                              WHEN 'pg_namespace'::regclass THEN (SELECT nspname FROM pg_namespace WHERE oid = objid)\n" +
-                "                              WHEN 'pg_opclass'::regclass THEN (SELECT opcname FROM pg_opclass WHERE oid = objid)\n" +
-                "                              WHEN 'pg_operator'::regclass THEN (SELECT oprname FROM pg_operator WHERE oid = objid)\n" +
-                "                              WHEN 'pg_opfamily'::regclass THEN (SELECT opfname FROM pg_opfamily WHERE oid = objid)\n" +
-                "                              WHEN 'pg_proc'::regclass THEN objid::regprocedure::text\n" +
-                "                              WHEN 'pg_rewrite'::regclass THEN (SELECT ev_class::regclass::text FROM pg_rewrite WHERE oid = objid)\n" +
-                "                              WHEN 'pg_trigger'::regclass THEN (SELECT tgname FROM pg_trigger WHERE oid = objid)\n" +
-                "                              WHEN 'pg_type'::regclass THEN objid::regtype::text\n" +
-                "                              ELSE objid::text\n" +
-                "                              END AS REFERENCED_NAME,\n" +
-                "                          substring(pg_identify_object(refclassid, refobjid, 0)::text, E'(\\\\w+?)\\\\.') as referencing_schema_name, " +
-                "                          CASE refclassid\n" +
-                "                              WHEN 'pg_namespace'::regclass THEN (SELECT nspname FROM pg_namespace WHERE oid = refobjid)\n" +
-                "                              WHEN 'pg_class'::regclass THEN rrel.object_name\n" +
-                "                              WHEN 'pg_opfamily'::regclass THEN (SELECT opfname FROM pg_opfamily WHERE oid = refobjid)\n" +
-                "                              WHEN 'pg_proc'::regclass THEN refobjid::regprocedure::text\n" +
-                "                              WHEN 'pg_type'::regclass THEN refobjid::regtype::text\n" +
-                "                              ELSE refobjid::text\n" +
-                "                              END AS REFERENCING_NAME\n" +
-                "                   FROM pg_depend dep\n" +
-                "                            LEFT JOIN relation_object rel ON rel.oid = dep.objid\n" +
-                "                            LEFT JOIN relation_object rrel ON rrel.oid = dep.refobjid, preference\n" +
-                "                   WHERE deptype = ANY('{n,a}')\n" +
-                "                     AND objid >= preference.min_oid\n" +
-                "                     AND (refobjid >= preference.min_oid OR refobjid = 2200) -- need public schema as root node\n" +
-                "                     AND classid::regclass::text !~ preference.class_exclusion\n" +
-                "                     AND refclassid::regclass::text !~ preference.class_exclusion\n" +
-                "                     AND COALESCE(SUBSTRING(objid::regclass::text, E'^(\\\\\\\\w+)\\\\\\\\.'),'') !~ preference.schema_exclusion\n" +
-                "                     AND COALESCE(SUBSTRING(refobjid::regclass::text, E'^(\\\\\\\\w+)\\\\\\\\.'),'') !~ preference.schema_exclusion\n" +
-                "                   GROUP BY classid, objid, refclassid, refobjid, deptype, rel.object_name, rrel.object_name\n" +
-                "               )\n" +
-                " select referenced_schema_name,\n" +
-                "    (CASE\n" +
-                "      WHEN position('.' in referenced_name) >0 THEN substring(referenced_name from position('.' in referenced_name)+1 for length(referenced_name))\n" +
-                "      ELSE referenced_name\n" +
-                "    END)  AS referenced_name, \n" +
-                "   referencing_schema_name,\n" +
-                "   (CASE\n" +
-                "      WHEN position('.' in referencing_name) >0 THEN substring(referencing_name from position('.' in referencing_name)+1 for length(referencing_name))\n" +
-                "      ELSE referencing_name\n" +
-                "    END)  AS referencing_name from dependency_pair where REFERENCED_NAME != REFERENCING_NAME " +
-                " AND (" +
-                StringUtil.join(schemas, " OR ", (StringUtil.StringUtilFormatter<String>) obj -> " REFERENCED_NAME like '" + obj + ".%' OR REFERENCED_NAME NOT LIKE '%.%'") + ")\n" +
-                " AND (CONTYPE::text != 'p' AND CONTYPE::text != 'f')\n" +
-                " AND referencing_schema_name is not null and referencing_name is not null";
+                "    SELECT 10 AS max_depth, 16384 AS min_oid,\n" +
+                "           '^(londiste|pgq|pg_toast)' AS schema_exclusion,\n" +
+                "           '^pg_(conversion|language|ts_(dict|template))' AS class_exclusion,\n" +
+                "           '{\"SCHEMA\":\"00\", \"TABLE\":\"01\", \"CONSTRAINT\":\"02\", \"DEFAULT\":\"03\",\n" +
+                "             \"INDEX\":\"05\", \"SEQUENCE\":\"06\", \"TRIGGER\":\"07\", \"FUNCTION\":\"08\",\n" +
+                "             \"VIEW\":\"10\", \"MVIEW\":\"11\", \"FOREIGN\":\"12\"}' AS type_ranks\n" +
+                "),\n" +
+                "dependency_pair AS (\n" +
+                "    WITH relation_object AS (\n" +
+                "         SELECT oid, oid::regclass::text AS object_name FROM pg_class\n" +
+                "    )\n" +
+                "    SELECT DISTINCT \n" +
+                "           REGEXP_SUBSTR(pg_identify_object(classid, objid, 0), \"(\\\\w+?)\\\\.\", 1, 1, NULL, 1) AS referenced_schema_name,\n" +
+                "           CASE classid\n" +
+                "                WHEN 'pg_constraint'::regclass THEN (SELECT CONTYPE::text FROM pg_constraint WHERE oid = objid)\n" +
+                "                ELSE objid::text\n" +
+                "           END AS CONTYPE,\n" +
+                "           CASE classid\n" +
+                "                WHEN 'pg_attrdef'::regclass THEN (SELECT attname FROM pg_attrdef d JOIN pg_attribute c ON (c.attrelid,d.adrelid) = (c.attnum,d.adnum) WHERE d.oid = objid)\n" +
+                "                WHEN 'pg_cast'::regclass THEN (SELECT castsource::regtype::text || ' AS ' || casttarget::regtype::text || ' WITH ' || castfunc::regprocedure::text FROM pg_cast WHERE oid = objid)\n" +
+                "                WHEN 'pg_class'::regclass THEN rel.object_name\n" +
+                "                WHEN 'pg_constraint'::regclass THEN (SELECT conname FROM pg_constraint WHERE oid = objid)\n" +
+                "                WHEN 'pg_extension'::regclass THEN (SELECT extname FROM pg_extension WHERE oid = objid)\n" +
+                "                WHEN 'pg_namespace'::regclass THEN (SELECT nspname FROM pg_namespace WHERE oid = objid)\n" +
+                "                WHEN 'pg_opclass'::regclass THEN (SELECT opcname FROM pg_opclass WHERE oid = objid)\n" +
+                "                WHEN 'pg_operator'::regclass THEN (SELECT oprname FROM pg_operator WHERE oid = objid)\n" +
+                "                WHEN 'pg_opfamily'::regclass THEN (SELECT opfname FROM pg_opfamily WHERE oid = objid)\n" +
+                "                WHEN 'pg_proc'::regclass THEN objid::regprocedure::text\n" +
+                "                WHEN 'pg_rewrite'::regclass THEN (SELECT ev_class::regclass::text FROM pg_rewrite WHERE oid = objid)\n" +
+                "                WHEN 'pg_trigger'::regclass THEN (SELECT tgname FROM pg_trigger WHERE oid = objid)\n" +
+                "                WHEN 'pg_type'::regclass THEN objid::regtype::text\n" +
+                "                ELSE objid::text\n" +
+                "           END AS REFERENCED_NAME,\n" +
+                "           REGEXP_SUBSTR(pg_identify_object(refclassid, refobjid, 0), \"(\\\\w+?)\\\\.\", 1, 1, NULL, 1) AS referencing_schema_name,\n" +
+                "           CASE refclassid\n" +
+                "                WHEN 'pg_namespace'::regclass THEN (SELECT nspname FROM pg_namespace WHERE oid = refobjid)\n" +
+                "                WHEN 'pg_class'::regclass THEN rrel.object_name\n" +
+                "                WHEN 'pg_opfamily'::regclass THEN (SELECT opfname FROM pg_opfamily WHERE oid = refobjid)\n" +
+                "                WHEN 'pg_proc'::regclass THEN refobjid::regprocedure::text\n" +
+                "                WHEN 'pg_type'::regclass THEN refobjid::regtype::text\n" +
+                "                ELSE refobjid::text\n" +
+                "           END AS REFERENCING_NAME\n" +
+                "    FROM pg_depend dep\n" +
+                "         LEFT JOIN relation_object rel ON rel.oid = dep.objid\n" +
+                "         LEFT JOIN relation_object rrel ON rrel.oid = dep.refobjid,\n" +
+                "         preference\n" +
+                "    WHERE deptype = ANY('{n,a}')\n" +
+                "      AND objid >= preference.min_oid\n" +
+                "      AND (refobjid >= preference.min_oid OR refobjid = 2200)\n" +
+                "      AND classid::regclass::text !~ preference.class_exclusion\n" +
+                "      AND refclassid::regclass::text !~ preference.class_exclusion\n" +
+                "      AND COALESCE(REGEXP_SUBSTR(objid::regclass::text, \"^(\\\\w+)\\\\.\"), '') !~ preference.schema_exclusion\n" +
+                "      AND COALESCE(REGEXP_SUBSTR(refobjid::regclass::text, \"^(\\\\w+)\\\\.\"), '') !~ preference.schema_exclusion\n" +
+                "    GROUP BY classid, objid, refclassid, refobjid, deptype, rel.object_name, rrel.object_name\n" +
+                ")\n" +
+                "SELECT referenced_schema_name,\n" +
+                "       (CASE\n" +
+                "           WHEN INSTR(referenced_name, '.') > 0 THEN SUBSTR(referenced_name, INSTR(referenced_name, '.')+1, LENGTH(referenced_name))\n" +
+                "           ELSE referenced_name\n" +
+                "        END) AS referenced_name,\n" +
+                "       referencing_schema_name,\n" +
+                "       (CASE\n" +
+                "           WHEN INSTR(referencing_name, '.') > 0 THEN SUBSTR(referencing_name, INSTR(referencing_name, '.')+1, LENGTH(referencing_name))\n" +
+                "           ELSE referencing_name\n" +
+                "        END) AS referencing_name\n" +
+                "FROM dependency_pair\n" +
+                "WHERE REFERENCED_NAME != REFERENCING_NAME\n" +
+                "  AND (REFERENCED_NAME LIKE 'public.%' OR REFERENCED_NAME NOT LIKE '%.%')\n" +
+                "  AND (CONTYPE != 'p' AND CONTYPE != 'f')\n" +
+                "  AND referencing_schema_name IS NOT NULL\n" +
+                "  AND referencing_name IS NOT NULL";
+
     }
 
     protected List<Class<? extends DatabaseObject>> getOrderedOutputTypes(Class<? extends ChangeGenerator> generatorType) {
