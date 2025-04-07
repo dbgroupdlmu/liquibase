@@ -14,7 +14,7 @@ public class BooleanTypeTest {
     public void postgresqlBitString() {
         BooleanType bt = new BooleanType();
         bt.finishInitialization("bit(12)");
-        
+
         String expected = "b'111111111111'::\"bit\"";
 
         assertEquals(expected, bt.objectToSql("'111111111111'", new PostgresDatabase()));
@@ -24,7 +24,7 @@ public class BooleanTypeTest {
         assertEquals(expected, bt.objectToSql("'111111111111'::\"bit\"", new PostgresDatabase()));
         assertEquals(expected, bt.objectToSql("b'111111111111'::\"bit\"", new PostgresDatabase()));
     }
-    
+
     @Test(expected = UnexpectedLiquibaseException.class)
     public void postgresqlBitStringError() {
         BooleanType bt = new BooleanType();
