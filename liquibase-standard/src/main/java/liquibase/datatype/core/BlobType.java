@@ -70,7 +70,7 @@ public class BlobType extends LiquibaseDataType {
         }
 
         final boolean blob = originalDefinition.toLowerCase(Locale.US).startsWith("blob") || "java.sql.Types.BLOB".equals(originalDefinition);
-        if (database instanceof MySQLDatabase) {
+        if (database instanceof MySQLDatabase || database instanceof KingbaseDatabase) {
             if (blob) {
                 return new DatabaseDataType("BLOB");
             } else if (originalDefinition.toLowerCase(Locale.US).startsWith("varbinary") || "java.sql.Types.VARBINARY".equals
@@ -97,16 +97,6 @@ public class BlobType extends LiquibaseDataType {
             }
 
             return new DatabaseDataType("BYTEA");
-        }
-
-        if (database instanceof KingbaseDatabase) {
-            if (blob) {
-                return new DatabaseDataType("BLOB");
-            } else if (originalDefinition.toLowerCase(Locale.US).startsWith("oid")) {
-                return new DatabaseDataType("OID");
-            } else {
-                return new DatabaseDataType("BYTEA");
-            }
         }
 
         if (database instanceof SybaseASADatabase) {

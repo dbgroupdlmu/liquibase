@@ -80,7 +80,7 @@ public class ClobType extends LiquibaseDataType {
             return new DatabaseDataType("BLOB SUB_TYPE TEXT");
         } else if (database instanceof SybaseASADatabase) {
             return new DatabaseDataType("LONG VARCHAR");
-        } else if (database instanceof MySQLDatabase) {
+        } else if (database instanceof MySQLDatabase || database instanceof KingbaseDatabase) {
             if (originalDefinition.toLowerCase(Locale.US).startsWith("text")) {
                 return new DatabaseDataType("TEXT");
             } else if (originalDefinition.toLowerCase(Locale.US).startsWith("tinytext")) {
@@ -103,7 +103,7 @@ public class ClobType extends LiquibaseDataType {
         } else if ((database instanceof PostgresDatabase) || (database instanceof SQLiteDatabase) || (database
             instanceof SybaseDatabase)) {
             return new DatabaseDataType("TEXT");
-        } else if (database instanceof OracleDatabase || database instanceof KingbaseDatabase) {
+        } else if (database instanceof OracleDatabase) {
             if ("nclob".equals(originalDefinition.toLowerCase(Locale.US))) {
                 return new DatabaseDataType("NCLOB");
             }
