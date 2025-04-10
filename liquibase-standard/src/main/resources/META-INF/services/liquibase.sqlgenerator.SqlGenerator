@@ -104,3 +104,4 @@ liquibase.sqlgenerator.core.UnlockDatabaseChangeLogGenerator
 liquibase.sqlgenerator.core.UpdateChangeSetChecksumGenerator
 liquibase.sqlgenerator.core.UpdateDataChangeGenerator
 liquibase.sqlgenerator.core.UpdateGenerator
+#liquibase.sqlgenerator.core.CustomSqlGeneratorKingbase

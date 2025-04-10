@@ -35,7 +35,7 @@ public class BlobType extends LiquibaseDataType {
             }
         }
 
-        if (database instanceof MSSQLDatabase) {
+        if (database instanceof MSSQLDatabase || database instanceof KingbaseDatabase) {
             Object[] parameters = getParameters();
             if ("varbinary".equals(originalDefinition.toLowerCase(Locale.US))
                     || "[varbinary]".equals(originalDefinition)
