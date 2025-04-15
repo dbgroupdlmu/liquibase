@@ -31,8 +31,6 @@ import java.util.Set;
 /**
  * 该类需要为 Liquibase 注册你的自定义数据库类，Liquibase 在启动时加载并注册 KingbaseDatabase 类
  * META-INF/services/liquibase.database.Database
- *
- * @author huangxz created on 2024/09/10.
  */
 public class KingbaseDatabase extends AbstractJdbcDatabase {
 
