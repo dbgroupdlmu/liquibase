@@ -44,7 +44,7 @@ public class DateTimeType extends LiquibaseDataType {
             return new DatabaseDataType(SQL_DATETYPE_TIMESTAMP, getParameters());
         }
 
-        if (database instanceof MSSQLDatabase) {
+        if (database instanceof MSSQLDatabase || database instanceof KingbaseDatabase) {
             Object[] parameters = getParameters();
             if (originalDefinition.matches("(?i)^\\[?smalldatetime.*")) {
                 return new DatabaseDataType(database.escapeDataTypeName("smalldatetime"));

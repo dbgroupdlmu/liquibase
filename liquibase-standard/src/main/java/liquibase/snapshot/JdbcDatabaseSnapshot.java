@@ -1223,7 +1223,6 @@ public class JdbcDatabaseSnapshot extends DatabaseSnapshot {
                     } else if (database instanceof Db2zDatabase) {
                         return queryDb2Zos(catalogAndSchema, null);
                     } else if (database instanceof PostgresDatabase
-                            || database instanceof KingbaseDatabase
                     ) {
                         return queryPostgres(catalogAndSchema, table);
                     }
@@ -1760,7 +1759,7 @@ public class JdbcDatabaseSnapshot extends DatabaseSnapshot {
                         if (tableName != null) {
                             sql += " and table_name='" + tableName + "'";
                         }
-                    } else if (database instanceof PostgresDatabase) {
+                    } else if (database instanceof PostgresDatabase || database instanceof KingbaseDatabase) {
                         sql = "select CONSTRAINT_NAME, TABLE_NAME "
                                 + "from " + database.getSystemSchema() + ".table_constraints "
                                 + "where constraint_catalog='" + jdbcCatalogName + "' "
