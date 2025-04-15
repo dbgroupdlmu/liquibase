@@ -1223,7 +1223,6 @@ public class JdbcDatabaseSnapshot extends DatabaseSnapshot {
                     } else if (database instanceof Db2zDatabase) {
                         return queryDb2Zos(catalogAndSchema, null);
                     } else if (database instanceof PostgresDatabase
-                            || database instanceof KingbaseDatabase
                     ) {
                         return queryPostgres(catalogAndSchema, table);
                     }

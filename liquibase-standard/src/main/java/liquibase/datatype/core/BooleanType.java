@@ -65,10 +65,15 @@ public class BooleanType extends LiquibaseDataType {
 				return new DatabaseDataType("SMALLINT");
         } else if (database instanceof HsqlDatabase) {
             return new DatabaseDataType("BOOLEAN");
-        } else if (database instanceof PostgresDatabase || database instanceof KingbaseDatabase) {
+        } else if (database instanceof PostgresDatabase) {
             if (originalDefinition.toLowerCase(Locale.US).startsWith("bit")) {
                 return new DatabaseDataType("BIT", getParameters());
             }
+        }else if (database instanceof KingbaseDatabase) {
+            if (originalDefinition.toLowerCase(Locale.US).startsWith("bit")) {
+                return new DatabaseDataType("BIT", getParameters());
+            }
+            return new DatabaseDataType("TINYINT");
         } else if (database instanceof H2Database && getParameters().length > 0) {
           return new DatabaseDataType("BOOLEAN");
       }
