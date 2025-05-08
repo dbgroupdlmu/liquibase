@@ -8,7 +8,7 @@
     <name>Liquibase Parent</name>
     <groupId>org.liquibase</groupId>
     <artifactId>liquibase</artifactId>
-    <version>0-SNAPSHOT</version>
+    <version>4.30.0</version>
     <packaging>pom</packaging>
 
     <url>http://www.liquibase.com</url>
@@ -67,7 +67,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <trimStackTrace>false</trimStackTrace>
-        <liquibase-pro.version>0-SNAPSHOT</liquibase-pro.version>
+        <liquibase-pro.version>4.30.0</liquibase-pro.version>
         <argLine></argLine>
         <commons-lang3.version>3.17.0</commons-lang3.version>
         <commons-io.version>2.17.0</commons-io.version>
